@@ -16,19 +16,21 @@ module RailsAdmin
 
           register_instance_option :thumb_method do
             unless defined? @thumb_method
-              @thumb_method ||= begin              
-                attacher = bindings[:object].try("#{name}_attacher".to_sym)              
+              @thumb_method ||= begin
+                attacher = bindings[:object].try("#{name}_attacher".to_sym)
                 if attacher
-                  versions = attacher.shrine_class.version_names 
-                  versions.detect{|v| v.in?([:thumb, :thumbnail, 'thumb', 'thumbnail']) } || versions.first.to_s
-                end  
+                  version_names = JSON.parse(attacher.context[:record].image_data).map { |v| v.first.to_sym }
+                  version_names.detect do |v|
+                    v.in?([:thumb, :thumbnail, 'thumb', 'thumbnail'])
+                  end || version_names.first.to_sym
+                end
               end
             end
-            @thumb_method  
+            @thumb_method
           end
 
           register_instance_option :delete_method do
-            "remove_#{name}"
+            "delete"
           end
 
           register_instance_option :cache_method do
@@ -36,12 +38,12 @@ module RailsAdmin
           end
 
           def resource_url(thumb = false)
-            return nil unless (uploader = bindings[:object].send(name)).present?                        
+            return nil unless (uploader = bindings[:object].send(name)).present?
             if uploader.is_a? Hash # has versions
               thumb.present? ? uploader[thumb].url : uploader[uploader.keys.first].url
             else
-              uploader.url  
-            end  
+              uploader.url
+            end
           end
         end
       end
@@ -50,7 +52,7 @@ module RailsAdmin
 end
 
 RailsAdmin::Config::Fields.register_factory do |parent, properties, fields|
-  model = parent.abstract_model.model  
+  model = parent.abstract_model.model
   if defined?(::Shrine) && (attachment_names = (model).ancestors.select{|m| m.is_a? Shrine::Attachment}.map{|a| a.instance_variable_get("@name")}).any? && (attachment_name = attachment_names.detect{|a| a == properties.name.to_s.chomp('_data').to_sym})
     columns = [attachment_name, "#{attachment_name}_data".to_sym]
     field = RailsAdmin::Config::Fields::Types.load(:shrine).new(parent, attachment_name, properties)
