@@ -19,7 +19,7 @@ module RailsAdmin
               @thumb_method ||= begin
                 attacher = bindings[:object].try("#{name}_attacher".to_sym)
                 if attacher
-                  version_names = JSON.parse(attacher.context[:record].image_data).map { |v| v.first.to_sym }
+                  version_names = JSON.parse(attacher.context[:record].send("#{name}_data")).map { |v| v.first.to_sym }
                   version_names.detect do |v|
                     v.in?([:thumb, :thumbnail, 'thumb', 'thumbnail'])
                   end || version_names.first.to_sym
@@ -30,7 +30,8 @@ module RailsAdmin
           end
 
           register_instance_option :delete_method do
-            "delete"
+            # attacher = bindings[:object].try("#{name}_attacher".to_sym)
+            # attacher.delete
           end
 
           register_instance_option :cache_method do
